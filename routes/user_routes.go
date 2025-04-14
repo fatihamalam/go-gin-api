@@ -13,5 +13,11 @@ func SetupUserRoutes(api *gin.RouterGroup, db *gorm.DB) {
 	userService := services.NewUserService(db)
 	userController := controllers.NewUserController(userService)
 
-	api.GET("/profile", middleware.JWTAuthMiddleware(), userController.Profile)
+	api.Use(middleware.JWTAuthMiddleware())
+	api.GET("/profile", userController.Profile)
+	api.GET("/users", middleware.PermissionMiddleware(db, "user:read"), userController.GetAllUsers)
+	api.GET("/users/:id", middleware.PermissionMiddleware(db, "user:read"), userController.GetUser)
+	api.POST("/users", middleware.PermissionMiddleware(db, "user:write"), userController.CreateUser)
+	api.PUT("/users/:id", middleware.PermissionMiddleware(db, "user:write"), userController.UpdateUser)
+	api.DELETE("/users/:id", middleware.PermissionMiddleware(db, "user:delete"), userController.DeleteUser)
 }

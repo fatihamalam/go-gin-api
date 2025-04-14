@@ -21,6 +21,8 @@ func main() {
 		panic("Failed to close database connection.")
 	}
 	defer dbcon.Close()
+
+	config.SetupValidator(db)
 	
 	r := gin.Default()
 	apiRoute := r.Group("/api")

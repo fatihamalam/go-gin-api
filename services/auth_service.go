@@ -11,10 +11,10 @@ import (
 )
 
 type AuthService interface {
-	Register(input dto.RegisterInput) (*models.User, error)
+	Register(input dto.RegisterInput) (*models.RegisterResponse, error)
 	Login(input dto.LoginInput) (*string, *string, error)
 	Logout(email string) error
-	RefreshToken(refreshToken string) (*string, *string, error)
+	RefreshToken(refreshToken string) (*string, error)
 }
 
 type authService struct {
@@ -27,12 +27,7 @@ func NewAuthService(db *gorm.DB) AuthService {
 	}
 }
 
-func (as authService) Register(input dto.RegisterInput) (*models.User, error) {
-	var existingUser models.User
-	if result := as.db.Where("email = ?", input.Email).First(&existingUser); result.RowsAffected > 0 {
-		return nil, errors.New("email already exists")
-	}
-
+func (as authService) Register(input dto.RegisterInput) (*models.RegisterResponse, error) {
 	user := models.User{
 		Name: input.Name,
 		Email: input.Email,
@@ -47,12 +42,18 @@ func (as authService) Register(input dto.RegisterInput) (*models.User, error) {
 		return nil, errors.New("failed to create user")
 	}
 
-	return &user, nil
+	return &models.RegisterResponse{
+		ID: user.ID,
+		Name: user.Name,
+		Email: user.Email,
+		RoleID: user.RoleID,
+		IsActive: user.IsActive,
+	}, nil
 }
 
 func (as authService) Login(input dto.LoginInput) (*string, *string, error) {
 	var user models.User
-	result := as.db.Where("email = ?", input.Email).First(&user)
+	result := as.db.Where(&models.User{ Email: input.Email, IsActive: true }).First(&user)
 	if result.Error != nil {
 		return nil, nil, errors.New("invalid credentials")
 	}
@@ -88,10 +89,10 @@ func (as authService) Logout(email string) error {
 	return nil
 }
 
-func (as authService) RefreshToken(refreshToken string) (*string, *string, error) {
+func (as authService) RefreshToken(refreshToken string) (*string, error) {
 	token, err := utils.ParseToken(refreshToken, true)
 	if err != nil {
-		return nil, nil, errors.New("invalid refresh token")
+		return nil, errors.New("invalid refresh token")
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
@@ -99,22 +100,17 @@ func (as authService) RefreshToken(refreshToken string) (*string, *string, error
 	
 	var user models.User
 	if err := as.db.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, nil, errors.New("user not found")
+		return nil, errors.New("user not found")
 	}
 
 	if user.RefreshToken != refreshToken {
-		return nil, nil, errors.New("token mismatch")
+		return nil, errors.New("token mismatch")
 	}
 
-	newAccessToken, newRefreshToken, err := utils.GenerateToken(user.ID, user.Email)
+	newAccessToken, _, err := utils.GenerateToken(user.ID, user.Email)
 	if err != nil {
-		return nil, nil, err
-	}
-	
-	user.RefreshToken = *newRefreshToken
-	if err := as.db.Save(&user).Error; err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return newAccessToken, newRefreshToken, nil
+	return newAccessToken, nil
 }

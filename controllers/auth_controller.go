@@ -3,6 +3,7 @@ package controllers
 import (
 	"go-gin-api/dto"
 	"go-gin-api/services"
+	"go-gin-api/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,12 @@ func NewAuthController(authService services.AuthService) AuthController {
 func (ac authController) Register(c *gin.Context) {
 	var input dto.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
+		validationErrors := utils.ValidationErrorToText(err)
+		if len(validationErrors) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+			return
+		}
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -38,8 +45,11 @@ func (ac authController) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"user": user,
+		},
 		"message": "User registered successfully",
-		"data": user,
 	})
 }
 
@@ -57,7 +67,13 @@ func (ac authController) Login(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", *refreshToken, 7*24*3600, "/", "", true, true)
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"access_token": accessToken,
+		},
+		"message": "User logged in successfully",
+	})
 }
 
 func (ac authController) Logout(c *gin.Context) {
@@ -67,23 +83,31 @@ func (ac authController) Logout(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User logged out successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"message": "User logged out successfully",
+	})
 }
 
 func (ac authController) RefreshToken(c *gin.Context) {
-	oldRefreshToken, err := c.Cookie("refresh_token")
+	refreshToken, err := c.Cookie("refresh_token")
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing refresh token"})
 		return
 	}
 
-	accessToken, refreshToken, err := ac.authService.RefreshToken(oldRefreshToken)
+	accessToken, err := ac.authService.RefreshToken(refreshToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.SetCookie("refresh_token", *refreshToken, 7*24*3600, "/", "", true, true)
-	c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"access_token": accessToken,
+		},
+		"message": "Access token refreshed successfully",
+	})
 }
