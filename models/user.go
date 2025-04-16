@@ -18,6 +18,10 @@ type User struct {
 	IsActive		bool	`json:"is_active" gorm:"default:true"`
 }
 
+func (User) TableName() string {
+	return "master_data.users"
+}
+
 type UserResponse struct {
 	ID        uint          `json:"id"`
 	Name      string        `json:"name"`
@@ -51,27 +55,9 @@ func (u *User) CheckPassword(password string) error {
 }
 
 func (u *User) ToResponse() UserResponse {
-	var roleResponse *RoleResponse
+	var roleResponse RoleResponse
 	if u.Role.ID != 0 {
-		var perms []PermissionResponse
-		for _, p := range u.Role.Permissions {
-			perms = append(perms, PermissionResponse{
-				ID: p.ID,
-				Name: p.Name,
-				Description: p.Description,
-				CreatedAt: p.CreatedAt,
-				UpdatedAt: p.UpdatedAt,
-			})
-		}
-		
-		roleResponse = &RoleResponse{
-			ID: u.Role.ID,
-			Name: u.Role.Name,
-			Description: u.Role.Description,
-			Permissions: perms,
-			CreatedAt: u.Role.CreatedAt,
-			UpdatedAt: u.Role.UpdatedAt,
-		}
+		roleResponse = u.Role.ToResponse()
 	}
 	
 	return UserResponse{
@@ -79,7 +65,7 @@ func (u *User) ToResponse() UserResponse {
 		Name: u.Name,
 		Email: u.Email,
 		RoleID: u.RoleID,
-		Role: roleResponse,
+		Role: &roleResponse,
 		IsActive: u.IsActive,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
