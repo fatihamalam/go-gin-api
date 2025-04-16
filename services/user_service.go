@@ -52,7 +52,7 @@ func (us userService) FindAll(search string, order string, limit int, offset int
 
 	userResponses := models.MapUsersToResponse(users)
 	
-	return &userResponses, &totalData, result.Error
+	return &userResponses, &totalData, nil
 }
 
 func (us userService) FindOneByID(userID string) (*models.UserResponse, error) {
