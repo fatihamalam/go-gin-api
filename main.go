@@ -28,5 +28,6 @@ func main() {
 	apiRoute := r.Group("/api")
 	routes.SetupAuthRoutes(apiRoute, db)
 	routes.SetupUserRoutes(apiRoute, db)
+	routes.SetupRoleRoutes(apiRoute, db)
 	r.Run(":8080")
 }
