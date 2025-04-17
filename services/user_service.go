@@ -50,9 +50,9 @@ func (us userService) FindAll(search string, order string, limit int, offset int
 		return nil, nil, result.Error
 	}
 
-	userResponses := models.MapUsersToResponse(users)
+	userResponse := models.MapUsersToResponse(users)
 	
-	return &userResponses, &totalData, nil
+	return &userResponse, &totalData, nil
 }
 
 func (us userService) FindOneByID(userID string) (*models.UserResponse, error) {
@@ -61,9 +61,9 @@ func (us userService) FindOneByID(userID string) (*models.UserResponse, error) {
 		return nil, errors.New("user not found")
 	}
 
-	userResponses := user.ToResponse()
+	userResponse := user.ToResponse()
 
-	return &userResponses, nil
+	return &userResponse, nil
 }
 
 func (us userService) FindOneByEmail(email string) (*models.UserResponse, error) {
@@ -72,9 +72,9 @@ func (us userService) FindOneByEmail(email string) (*models.UserResponse, error)
 		return nil, errors.New("user not found")
 	}
 
-	userResponses := user.ToResponse()
+	userResponse := user.ToResponse()
 
-	return &userResponses, nil
+	return &userResponse, nil
 }
 
 func (us userService) GetProfile(userID float64) (*models.UserResponse, error) {
@@ -83,9 +83,9 @@ func (us userService) GetProfile(userID float64) (*models.UserResponse, error) {
 		return nil, errors.New("user not found")
 	}
 
-	userResponses := user.ToResponse()
+	userResponse := user.ToResponse()
 
-	return &userResponses, nil
+	return &userResponse, nil
 }
 
 func (us userService) CreateUser(input dto.CreateUserInput) (*models.UserResponse, error) {
@@ -99,7 +99,7 @@ func (us userService) CreateUser(input dto.CreateUserInput) (*models.UserRespons
 		return nil, errors.New("failed to hash password")
 	}
 
-	if result := us.db.Create(&user); result.Error != nil {
+	if err := us.db.Create(&user).Error; err != nil {
 		return nil, errors.New("failed to create user")
 	}
 
