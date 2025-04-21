@@ -16,6 +16,7 @@ type RoleController interface {
 	CreateRole(c *gin.Context)
 	UpdateRole(c *gin.Context)
 	DeleteRole(c *gin.Context)
+	GetPermissionsByRoleID(c *gin.Context)
 }
 
 type roleController struct{
@@ -33,9 +34,10 @@ func (rc roleController) GetAllRoles(c *gin.Context) {
 		"name": true, "created_at": true,
 	}
 	search := c.Query("query")
+	includes := utils.BuildRelation(c, []string{"Permissions"})
 	order := utils.Sorting(c, "name", "asc", allowedFields)
 	limit, page, offset := utils.Paginate(c)
-	roles, totalData, err := rc.roleService.FindAll(search, order, limit, offset)
+	roles, totalData, err := rc.roleService.FindAll(search, order, limit, offset, includes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -139,5 +141,23 @@ func (rc roleController) DeleteRole(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"message": "Role deleted successfully",
+	})
+}
+
+func (rc roleController) GetPermissionsByRoleID(c *gin.Context) {
+	roleID := c.Param("id")
+
+	permissions, err := rc.roleService.GetPermissionsByRoleID(roleID);
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"permissions": permissions,
+		},
+		"message": "Permissions fetched successfully",
 	})
 }

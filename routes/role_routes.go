@@ -19,4 +19,5 @@ func SetupRoleRoutes(api *gin.RouterGroup, db *gorm.DB) {
 	api.POST("/roles", middleware.PermissionMiddleware(db, "role:write"), roleController.CreateRole)
 	api.PUT("/roles/:id", middleware.PermissionMiddleware(db, "role:write"), roleController.UpdateRole)
 	api.DELETE("/roles/:id", middleware.PermissionMiddleware(db, "role:delete"), roleController.DeleteRole)
+	api.GET("/roles/:id/permissions", middleware.PermissionMiddleware(db, "role:read"), roleController.GetPermissionsByRoleID)
 }

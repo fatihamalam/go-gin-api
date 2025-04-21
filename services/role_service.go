@@ -9,11 +9,12 @@ import (
 )
 
 type RoleService interface {
-	FindAll(search string, order string, limit int, offset int) (*[]models.RoleResponse, *int64, error)
+	FindAll(search string, order string, limit int, offset int, includes []string) (*[]models.RoleResponse, *int64, error)
 	FindOneByID(roleID string) (*models.RoleResponse, error)
 	CreateRole(input dto.CreateRoleInput) (*models.RoleResponse, error)
 	UpdateRole(roleID string, input dto.UpdateRoleInput) (*models.RoleResponse, error)
 	DeleteRole(roleID string) error
+	GetPermissionsByRoleID(roleID string) (*[]models.PermissionResponse, error)
 }
 
 type roleService struct {
@@ -26,7 +27,7 @@ func NewRoleService(db *gorm.DB) RoleService {
 	}
 }
 
-func (rs roleService) FindAll(search string, order string, limit int, offset int) (*[]models.RoleResponse, *int64, error) {
+func (rs roleService) FindAll(search string, order string, limit int, offset int, includes []string) (*[]models.RoleResponse, *int64, error) {
 	var roles []models.Role
 	var totalData int64
 
@@ -36,6 +37,10 @@ func (rs roleService) FindAll(search string, order string, limit int, offset int
 	if search != "" {
 		likeSearch := "%" + search + "%"
 		query.Where("name ILIKE ?", likeSearch)
+	}
+
+	for _, include := range includes {
+		query.Preload(include)
 	}
 
 	result := query.Find(&roles).Limit(limit).Offset(offset)
@@ -108,4 +113,14 @@ func (rs roleService) DeleteRole(roleID string) error {
 	}
 
 	return nil
+}
+
+func (rs roleService) GetPermissionsByRoleID(roleID string) (*[]models.PermissionResponse, error) {
+	var role models.Role
+	if err := rs.db.Preload("Permissions").First(&role, roleID).Error; err != nil {
+		return nil, errors.New("role not found")
+	}
+
+	permissionsResponse := models.MapPermissionsToResponse(role.Permissions)
+	return &permissionsResponse, nil
 }

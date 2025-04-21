@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -54,6 +55,23 @@ func Sorting(c *gin.Context, defaultOrder, defaultSort string, allowedFields map
 
 	order = orderBy + " " + sort
 	return
+}
+
+func BuildRelation(c *gin.Context, relations []string) []string {
+	var includes []string
+	queryIncludes := c.Query("includes")
+
+	if queryIncludes == "" {
+		return includes
+	}
+
+	for _, include := range strings.Split(queryIncludes, ",") {
+		if slices.Contains(relations, include) {
+			includes = append(includes, include)
+		}
+	}
+
+	return includes
 }
 
 func ValidationErrorToText(err error) map[string]string {
