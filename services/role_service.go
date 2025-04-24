@@ -15,6 +15,7 @@ type RoleService interface {
 	UpdateRole(roleID string, input dto.UpdateRoleInput) (*models.RoleResponse, error)
 	DeleteRole(roleID string) error
 	GetPermissionsByRoleID(roleID string) (*[]models.PermissionResponse, error)
+	UpdatePermissionsInRole(roleID string, permissionIDs []string) error
 }
 
 type roleService struct {
@@ -123,4 +124,22 @@ func (rs roleService) GetPermissionsByRoleID(roleID string) (*[]models.Permissio
 
 	permissionsResponse := models.MapPermissionsToResponse(role.Permissions)
 	return &permissionsResponse, nil
+}
+
+func (rs roleService) UpdatePermissionsInRole(roleID string, permissionIDs []string) error {
+	var newPermissions []models.Permission
+	if err := rs.db.Where("id IN ?", permissionIDs).Find(&newPermissions).Error; err != nil {
+		return err
+	}
+
+	var role models.Role
+	if err := rs.db.Preload("Permissions").First(&role, roleID).Error; err != nil {
+		return errors.New("role not found")
+	}
+
+	if err := rs.db.Model(&role).Association("Permissions").Replace(&newPermissions); err != nil {
+		return errors.New("failed to update role permissions")
+	}
+
+	return nil
 }

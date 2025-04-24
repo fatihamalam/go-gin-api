@@ -17,6 +17,7 @@ type RoleController interface {
 	UpdateRole(c *gin.Context)
 	DeleteRole(c *gin.Context)
 	GetPermissionsByRoleID(c *gin.Context)
+	UpdatePermissionsInRole(c *gin.Context)
 }
 
 type roleController struct{
@@ -159,5 +160,24 @@ func (rc roleController) GetPermissionsByRoleID(c *gin.Context) {
 			"permissions": permissions,
 		},
 		"message": "Permissions fetched successfully",
+	})
+}
+
+func (rc roleController) UpdatePermissionsInRole(c *gin.Context) {
+	roleID := c.Param("id")
+	var input dto.UpdatePermissionsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := rc.roleService.UpdatePermissionsInRole(roleID, input.PermissionIds); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"message": "Permissions updated successfully",
 	})
 }
