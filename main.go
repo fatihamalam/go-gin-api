@@ -29,5 +29,6 @@ func main() {
 	routes.SetupAuthRoutes(apiRoute, db)
 	routes.SetupUserRoutes(apiRoute, db)
 	routes.SetupRoleRoutes(apiRoute, db)
+	routes.SetupItemCategoryRoutes(apiRoute, db)
 	r.Run(":8080")
 }
